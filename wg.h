@@ -23,7 +23,9 @@
  *   wg_over()                1 once the run has ended
  * For them wg_init(seed) starts a run with the options picked, Start never
  * reaches wg_frame (it opens the pause screen), and the options live in the
- * state, so a save brings its own setup and scoreboard back.
+ * state, so a save brings its own setup and scoreboard back. Keeping them as
+ * an `i32 opt[N]` there, with a `choices[N]` table of how many each has, lets
+ * wg_pick and wg_picks_ok below do the checks.
  */
 #ifndef WG_H
 #define WG_H
@@ -173,5 +175,16 @@ static u32 xorshift(u32 *s) {
   return *s = x;
 }
 
+/* For games with a setup: wg_option's body, and its check for wg_state_loaded. */
+static i32 wg_pick(i32 *opt, const i32 *choices, i32 n, i32 i, i32 v) {
+  if (i < 0 || i >= n) return -1;
+  if (v >= 0 && v < choices[i]) opt[i] = v;
+  return opt[i];
+}
+static i32 wg_picks_ok(const i32 *opt, const i32 *choices, i32 n) {
+  for (i32 i = 0; i < n; i++)
+    if (opt[i] < 0 || opt[i] >= choices[i]) return 0;
+  return 1;
+}
 
 #endif
