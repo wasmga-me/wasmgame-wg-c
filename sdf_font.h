@@ -3,7 +3,6 @@
  * Inter: (c) The Inter Project Authors, SIL Open Font License 1.1, https://rsms.me/inter/ */
 #define SDF_EM 40
 #define SDF_SPREAD 5.0f
-#define SDF_ASCENT 38.750f
 static const char SDF_CHARS[] = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-.,:!?'/%()^<>";
 /* offset, w, h, left bearing, advance, top */
 static const struct { unsigned int off; unsigned char w, h; float left, adv, top; } SDF_GLYPHS[] = {

@@ -10,7 +10,8 @@
  *   wg_score()               current score (reported to the scoreboard)
  * and may export (see src/scripts/engines/native.ts):
  *   wg_resize(w, h)          draw at this size from now on (device pixels)
- *   wg_touch(kind, x, y)     pointer down 0, move 1, up 2, cancel 3
+ *   wg_mouse(x, y, buttons)  pointer in game pixels (-1, -1 when it leaves);
+ *                            buttons 1 left, 2 right, 4 middle, 8 touch
  *   wg_drawn()               1 if the last wg_frame changed the picture
  *   wg_pointer(x)            paddle games: pointer x, -1 when it leaves
  *
@@ -33,13 +34,6 @@ typedef int i32;
 
 #define WG_EXPORT(name) __attribute__((export_name(#name)))
 
-/* a game may define its own W and H before including this file */
-#ifndef W
-#define W 256
-#endif
-#ifndef H
-#define H 224
-#endif
 
 /* buttons */
 #define B_UP 1
@@ -75,7 +69,17 @@ void *memcpy(void *d, const void *s, unsigned long n) {
 /* Games that size their own framebuffer (wg_resize) define WG_OWN_FB and
  * skip the fixed one with its pixel font. */
 #ifndef WG_OWN_FB
+/* a game may define its own W and H before including this file */
+#ifndef W
+#define W 256
+#endif
+#ifndef H
+#define H 224
+#endif
 static u32 fb[W * H];
+WG_EXPORT(wg_fb) u32 *wg_fb(void) { return fb; }
+WG_EXPORT(wg_w) int wg_w(void) { return W; }
+WG_EXPORT(wg_h) int wg_h(void) { return H; }
 
 static void fill(int x, int y, int w, int h, u32 c) {
   if (x < 0) { w += x; x = 0; }
@@ -169,10 +173,5 @@ static u32 xorshift(u32 *s) {
   return *s = x;
 }
 
-#ifndef WG_OWN_FB
-WG_EXPORT(wg_fb) u32 *wg_fb(void) { return fb; }
-WG_EXPORT(wg_w) int wg_w(void) { return W; }
-WG_EXPORT(wg_h) int wg_h(void) { return H; }
-#endif
 
 #endif

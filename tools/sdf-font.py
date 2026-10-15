@@ -19,7 +19,6 @@ SPREAD = 5.0     # distance range stored, in field pixels, either side of the ed
 PAD = 4
 
 font = ImageFont.truetype(FONT, EM * SUPER)
-ascent, descent = font.getmetrics()
 glyphs, data = [], bytearray()
 
 for ch in CHARS:
@@ -57,7 +56,6 @@ lines = [
     " * Inter: (c) The Inter Project Authors, SIL Open Font License 1.1, https://rsms.me/inter/ */",
     f"#define SDF_EM {EM}",
     f"#define SDF_SPREAD {SPREAD}f",
-    f"#define SDF_ASCENT {ascent / SUPER:.3f}f",
     f'static const char SDF_CHARS[] = "{CHARS}";',
     "/* offset, w, h, left bearing, advance, top */",
     "static const struct { unsigned int off; unsigned char w, h; float left, adv, top; } SDF_GLYPHS[] = {",
