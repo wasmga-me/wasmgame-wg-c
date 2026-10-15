@@ -12,7 +12,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 FONT = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/fonts/opentype/inter/InterDisplay-ExtraBold.otf"
-CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-.,:!?'/%()^"
+CHARS = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-.,:!?'/%()^<>"
 EM = 40          # glyph size in the stored fields
 SUPER = 8        # the outline is found at EM * SUPER and sampled down
 SPREAD = 5.0     # distance range stored, in field pixels, either side of the edge

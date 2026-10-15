@@ -46,6 +46,7 @@ typedef int i32;
 #define WG_EV_LOSE 4
 #define WG_EV_GAMEOVER 8
 #define WG_EV_LEVEL 16
+#define WG_EV_WIN 32 /* a win tune */
 
 void *memset(void *d, int c, unsigned long n) {
   u8 *p = (u8 *)d;
