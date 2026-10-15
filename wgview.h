@@ -225,6 +225,18 @@ static char *join(char *buf, const char *a, const char *b) {
   return buf;
 }
 
+/* tenths of a second as "12.3" */
+static char *tenths(i32 t, char *buf) {
+  char tmp[12];
+  itoa10(t / 10, tmp);
+  i32 i = 0;
+  for (; tmp[i]; i++) buf[i] = tmp[i];
+  buf[i++] = '.';
+  buf[i++] = (char)('0' + t % 10);
+  buf[i] = 0;
+  return buf;
+}
+
 /* seconds as "1:05" */
 static char *clock_text(i32 secs, char *buf) {
   char tmp[12];
