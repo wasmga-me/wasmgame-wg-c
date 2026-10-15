@@ -18,8 +18,13 @@ typedef int i32;
 
 #define WG_EXPORT(name) __attribute__((export_name(#name)))
 
+/* a game may define its own W and H before including this file */
+#ifndef W
 #define W 256
+#endif
+#ifndef H
 #define H 224
+#endif
 
 /* buttons */
 #define B_UP 1
