@@ -13,6 +13,16 @@
  *   wg_touch(kind, x, y)     pointer down 0, move 1, up 2, cancel 3
  *   wg_drawn()               1 if the last wg_frame changed the picture
  *   wg_pointer(x)            paddle games: pointer x, -1 when it leaves
+ *
+ * Games with a setup in the catalog (`setup`: speed, map size and so on) let
+ * the page draw the setup, pause and game over screens (src/scripts/menu.ts),
+ * so they have no title or pause of their own and export two more:
+ *   wg_option(i, v)          v >= 0 picks choice v of option i (catalog order)
+ *                            for the next wg_init; returns option i's choice
+ *   wg_over()                1 once the run has ended
+ * For them wg_init(seed) starts a run with the options picked, Start never
+ * reaches wg_frame (it opens the pause screen), and the options live in the
+ * state, so a save brings its own setup and scoreboard back.
  */
 #ifndef WG_H
 #define WG_H
