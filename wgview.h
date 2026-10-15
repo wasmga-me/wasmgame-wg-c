@@ -75,17 +75,19 @@ static void v_box_grad(float x, float y, float w, float h, float r, u32 top, u32
   }
 }
 
-/* a soft shadow: a rounded box blurred over `soft` plan units */
-static void v_shadow(float x, float y, float w, float h, float r, float soft, u32 c, float a) {
+/* a soft shadow: a rounded box blurred over `soft` plan units; a hollow
+ * one leaves out the middle, for shadows under something opaque */
+static void v_shadow_(float x, float y, float w, float h, float r, float soft, u32 c, float a, float hollow) {
   i32 b[4];
   v_bounds(x - soft, y - soft, x + w + soft, y + h + soft, b);
   float s = soft * VK + 1, cx = VX + (x + w / 2) * VK, cy = VY + (y + h / 2) * VK;
-  float rr = minf(r, minf(w, h) / 2) * VK, hw = w / 2 * VK - rr, hh = h / 2 * VK - rr;
+  float rr = minf(r, minf(w, h) / 2) * VK, hw = w / 2 * VK - rr, hh = h / 2 * VK - rr, skip = -hollow * VK - rr;
   for (i32 j = b[1]; j < b[3]; j++) {
     float qy = absf(j + 0.5f - cy) - hh;
     u32 *row = fb + j * FW;
     for (i32 i = b[0]; i < b[2]; i++) {
       float qx = absf(i + 0.5f - cx) - hw, d;
+      if (hollow > 0 && qx < skip && qy < skip) continue;
       if (qx <= 0 && qy <= 0) d = maxf(qx, qy) - rr;
       else if (qx <= 0) d = qy - rr;
       else if (qy <= 0) d = qx - rr;
@@ -101,6 +103,10 @@ static float half_span(float rx, float ry, float dy) {
   if (rx <= 0 || ry <= 0) return -1;
   float t = 1 - dy * dy / (ry * ry);
   return t > 0 ? rx * sqrtf_(t) : -1;
+}
+
+static void v_shadow(float x, float y, float w, float h, float r, float soft, u32 c, float a) {
+  v_shadow_(x, y, w, h, r, soft, c, a, 0);
 }
 
 /* an ellipse; rx may shrink to nothing, as a disc turning over. Each row
@@ -284,6 +290,52 @@ static void view_background(u32 key, void (*draw)(void)) {
   }
   u32 *d = fb, *s = fb_layer(1), *end = fb + FW * FH;
   while (d < end) *d++ = *s++;
+}
+
+/* ---------- sprites ----------
+ * Something drawn many times the same (a card back) can be drawn once into
+ * a sprite after the screen layers, then copied. Its pixels must be opaque. */
+typedef struct { u32 *px; i32 w, h; u32 key; } Sprite;
+
+/* room for n pixels after the layers, or 0 */
+static u32 *scratch(unsigned long n) {
+  u32 *p = fb_layer(FB_LAYERS);
+  unsigned long need = (unsigned long)(p + n), have = __builtin_wasm_memory_size(0) * 65536ul;
+  if (need > have && __builtin_wasm_memory_grow(0, (need - have + 65535) / 65536) == (unsigned long)-1) return 0;
+  return p;
+}
+
+/* draws the plan box x, y, w, h into the sprite with draw(x, y) when the
+ * key or the scale changed; returns whether the sprite is usable */
+static i32 sprite_make(Sprite *s, u32 key, float x, float y, float w, float h, void (*draw)(float, float)) {
+  key = hash_int(hash_int(hash_int(key, FW), FH), (i32)(VK * 1000));
+  i32 sw = ceili(w * VK), sh = ceili(h * VK);
+  u32 *px = scratch((unsigned long)sw * sh);
+  if (!px) return 0;
+  if (s->key == key && s->px == px) return 1;
+  u32 *kf = fb;
+  i32 kw = FW, kh = FH;
+  float kx = VX, ky = VY;
+  fb = px; FW = sw; FH = sh;
+  VX = -x * VK; VY = -y * VK;
+  draw(x, y);
+  fb = kf; FW = kw; FH = kh; VX = kx; VY = ky;
+  s->px = px; s->w = sw; s->h = sh; s->key = key;
+  return 1;
+}
+
+/* copies the sprite with its top left at plan x, y, to the nearest pixel */
+static void sprite_put(const Sprite *s, float x, float y) {
+  i32 dx = floori(VX + x * VK + 0.5f), dy = floori(VY + y * VK + 0.5f);
+  for (i32 j = 0; j < s->h; j++) {
+    i32 yy = dy + j;
+    if (yy < 0 || yy >= FH) continue;
+    u32 *d = fb + yy * FW, *src = s->px + j * s->w;
+    for (i32 i = 0; i < s->w; i++) {
+      i32 xx = dx + i;
+      if (xx >= 0 && xx < FW) d[xx] = src[i];
+    }
+  }
 }
 
 /* ---------- redraw gate ----------
