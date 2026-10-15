@@ -8,6 +8,11 @@
  *                            the whole game state lives in one struct, so a
  *                            save is a byte copy of it and a load is the reverse
  *   wg_score()               current score (reported to the scoreboard)
+ * and may export (see src/scripts/engines/native.ts):
+ *   wg_resize(w, h)          draw at this size from now on (device pixels)
+ *   wg_touch(kind, x, y)     pointer down 0, move 1, up 2, cancel 3
+ *   wg_drawn()               1 if the last wg_frame changed the picture
+ *   wg_pointer(x)            paddle games: pointer x, -1 when it leaves
  */
 #ifndef WG_H
 #define WG_H
@@ -54,9 +59,12 @@ void *memcpy(void *d, const void *s, unsigned long n) {
   return d;
 }
 
-static u32 fb[W * H];
-
 #define RGB(r, g, b) (0xFF000000u | ((u32)(b) << 16) | ((u32)(g) << 8) | (u32)(r))
+
+/* Games that size their own framebuffer (wg_resize) define WG_OWN_FB and
+ * skip the fixed one with its pixel font. */
+#ifndef WG_OWN_FB
+static u32 fb[W * H];
 
 static void fill(int x, int y, int w, int h, u32 c) {
   if (x < 0) { w += x; x = 0; }
@@ -129,6 +137,8 @@ static void text_center(int y, const char *str, int s, u32 c) {
   text((W - text_width(str, s)) / 2, y, str, s, c);
 }
 
+#endif
+
 /* writes decimal n into buf (at least 12 bytes) */
 static char *itoa10(int n, char *buf) {
   char tmp[12];
@@ -148,8 +158,10 @@ static u32 xorshift(u32 *s) {
   return *s = x;
 }
 
+#ifndef WG_OWN_FB
 WG_EXPORT(wg_fb) u32 *wg_fb(void) { return fb; }
 WG_EXPORT(wg_w) int wg_w(void) { return W; }
 WG_EXPORT(wg_h) int wg_h(void) { return H; }
+#endif
 
 #endif
