@@ -14,6 +14,9 @@
  *                            buttons 1 left, 2 right, 4 middle, 8 touch
  *   wg_drawn()               1 if the last wg_frame changed the picture
  *   wg_pointer(x)            paddle games: pointer x, -1 when it leaves
+ * and may import:
+ *   env.wg_panic(msg, len)   a UTF-8 message the page throws as the crash, so
+ *                            the error screen shows it with the stack below
  *
  * Games with a setup in the catalog (`setup`: speed, map size and so on) let
  * the page draw the setup, pause and game over screens (src/scripts/menu.ts),
