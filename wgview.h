@@ -256,6 +256,35 @@ static char *clock_text(i32 secs, char *buf) {
   return buf;
 }
 
+/* hundredths as "1.23" */
+static char *hundredths(i32 v, char *buf) {
+  char tmp[12];
+  itoa10(v / 100, tmp);
+  i32 i = 0;
+  for (; tmp[i]; i++) buf[i] = tmp[i];
+  buf[i++] = '.';
+  buf[i++] = (char)('0' + v % 100 / 10);
+  buf[i++] = (char)('0' + v % 10);
+  buf[i] = 0;
+  return buf;
+}
+
+/* ---------- stats for the game over screen ----------
+ * wg_stats() hands the page "Label\tValue\n" lines; a game fills them with
+ * stats_clear() and stat() when it is asked. */
+static char stats_buf[512];
+static i32 stats_len;
+
+static void stats_clear(void) { stats_len = 0; stats_buf[0] = 0; }
+static void stat(const char *label, const char *value) {
+  const char *parts[2] = {label, value};
+  for (i32 k = 0; k < 2; k++) {
+    for (const char *c = parts[k]; *c && stats_len < (i32)sizeof stats_buf - 3; c++) stats_buf[stats_len++] = *c;
+    stats_buf[stats_len++] = k ? '\n' : '\t';
+  }
+  stats_buf[stats_len] = 0;
+}
+
 /* held arrows repeat after a delay; returns the arrow bits to act on now */
 static u32 key_repeat(u32 held, u32 pressed, i32 dt, i32 *timer) {
   u32 dirs = held & (B_UP | B_DOWN | B_LEFT | B_RIGHT);
