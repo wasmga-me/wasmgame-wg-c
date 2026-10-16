@@ -28,6 +28,11 @@
  *   wg_stat(i)               optional: stat i of the run, in the order of the
  *                            catalog's `stats` (labels and units live there),
  *                            listed on the game over screen; -1 hides it
+ *   wg_best(v)               optional, for games that show a best score:
+ *                            v >= 0 sets the best on the board the current
+ *                            picks play on (the page passes its Scores
+ *                            panel's best, as the state's own is lost when a
+ *                            run ends); returns it
  * For them wg_init(seed) starts a run with the options picked, Start never
  * reaches wg_frame (it opens the pause screen), and the options live in the
  * state, so a save brings its own setup and scoreboard back. Keeping them as
