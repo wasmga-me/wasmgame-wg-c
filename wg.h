@@ -8,7 +8,7 @@
  *                            the whole game state lives in one struct, so a
  *                            save is a byte copy of it and a load is the reverse
  *   wg_score()               current score (reported to the scoreboard)
- * and may export (see src/scripts/engines/native.ts):
+ * and may export (see src/scripts/engines/native.ts in iris-offloading/wasmgame):
  *   wg_resize(w, h)          draw at this size from now on (device pixels)
  *   wg_mouse(x, y, buttons)  pointer in game pixels (-1, -1 when it leaves);
  *                            buttons 1 left, 2 right, 4 middle, 8 touch

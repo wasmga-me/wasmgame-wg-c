@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes games-src/sdf_font.h: signed distance fields of Inter Display
+"""Writes sdf_font.h: signed distance fields of Inter Display
 ExtraBold glyphs, so the native games can draw smooth text at any size.
 
 Inter is (c) The Inter Project Authors, SIL Open Font License 1.1.
