@@ -19,8 +19,8 @@ clang --target=wasm32 -O2 -ffreestanding -fno-builtin -nostdlib \
 
 ## Change the font
 
-Add glyphs to `CHARS` in `tools/sdf-font.py`, then run `python3 tools/sdf-font.py [InterDisplay-ExtraBold.otf]` (needs Pillow and NumPy). It rewrites `sdf_font.h`; copy the new file into the Rust engine, iris-offloading/wasmgame-wg, too.
+Add glyphs to `CHARS` in `tools/sdf-font.py`, then run `python3 tools/sdf-font.py [InterDisplay-ExtraBold.otf]` (needs Pillow and NumPy). It rewrites `sdf_font.h`; copy the new file into the Rust engine, [wasmgame-wg](https://github.com/wasmga-me/wasmgame-wg), too.
 
-## Use in wasmgame
+## Games on it
 
-`iris-offloading/wasmgame` pins a commit of this repo in `games-src/wg-c.rev`; `games-src/build.sh` fetches it into `games-src/wg-c/` when it compiles. After pushing here, bump that file there.
+[wasmga-me/games](https://github.com/wasmga-me/games) pins a commit of this repo in `wg-c.rev`; its `build.sh` fetches it into `wg-c/` when it compiles. After pushing here, bump that file there.
