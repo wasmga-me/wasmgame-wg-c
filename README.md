@@ -19,7 +19,7 @@ clang --target=wasm32 -O2 -ffreestanding -fno-builtin -nostdlib \
 
 ## Change the font
 
-Add glyphs to `CHARS` in `tools/sdf-font.py`, then run `python3 tools/sdf-font.py [InterDisplay-ExtraBold.otf]` (needs Pillow and NumPy). It rewrites `sdf_font.h`.
+Add glyphs to `CHARS` in `tools/sdf-font.py`, then run `python3 tools/sdf-font.py [InterDisplay-ExtraBold.otf]` (needs Pillow and NumPy). It rewrites `sdf_font.h`; copy the new file into the Rust engine, iris-offloading/wasmgame-wg, too.
 
 ## Use in wasmgame
 
