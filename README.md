@@ -23,7 +23,7 @@ Add glyphs to `CHARS` in `tools/sdf-font.py`, then run `python3 tools/sdf-font.p
 
 ## Languages
 
-The page passes its language to `wg_lang` before `wg_init`; games pick their text with `tr("Undo", "撤销", "元に戻す")`, one string per language in `WG_LANGS` order (wg.h), English for any left out. Text outside ASCII needs its glyphs: `python3 tools/sdf-font.py --extra game.lang.h game.c` writes every character the game's string literals use beyond `sdf_font.h` (accented Latin and Cyrillic from Inter, kana, Hangul and Han from Noto Sans), and the game includes that file after `sdf_font.h` (wgfb.h draws them). Run it again after changing the text.
+The page passes its language to `wg_lang` before `wg_init`; games pick their text with `tr("Undo", "撤销", "元に戻す")`, one string per language in `WG_LANGS` order (wg.h), English for any left out. Text outside ASCII needs its glyphs: `python3 tools/sdf-font.py --extra game.glyphs.h game.c` writes every character the game's string literals use beyond `sdf_font.h` (accented Latin and Cyrillic from Inter, kana, Hangul and Han from Noto Sans), and the game includes that file after `sdf_font.h` (wgfb.h draws them). Run it again after changing the text.
 
 ## Games on it
 
