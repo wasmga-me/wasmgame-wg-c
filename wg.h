@@ -14,6 +14,9 @@
  *                            buttons 1 left, 2 right, 4 middle, 8 touch
  *   wg_drawn()               1 if the last wg_frame changed the picture
  *   wg_pointer(x)            paddle games: pointer x, -1 when it leaves
+ *   wg_lang(code)            the page's language before wg_init, as two
+ *                            lowercase letters, code = 'z' | 'h' << 8; games
+ *                            pick their text with tr() below
  * and may import:
  *   env.wg_panic(msg, len)   a UTF-8 message the page throws as the crash, so
  *                            the error screen shows it with the stack below
@@ -197,6 +200,33 @@ static i32 wg_picks_ok(const i32 *opt, const i32 *choices, i32 n) {
   for (i32 i = 0; i < n; i++)
     if (opt[i] < 0 || opt[i] >= choices[i]) return 0;
   return 1;
+}
+
+/* The page's language (wg_lang), and a game's text in it: tr("Undo", "撤销").
+ * Text outside ASCII needs its glyphs: tools/sdf-font.py --extra makes them
+ * from the game's string literals, for wgfb.h. The language isn't part of
+ * the state, so a save plays on in whatever language the page is in. */
+#define WG_LANG(a, b) ((i32)(a) | (i32)(b) << 8)
+#define WG_LANG_ZH WG_LANG('z', 'h')
+static i32 wg_lang_code = WG_LANG('e', 'n');
+WG_EXPORT(wg_lang) i32 wg_lang(i32 code) {
+  if (code > 0) wg_lang_code = code;
+  return wg_lang_code;
+}
+static const char *tr(const char *en, const char *zh) { return wg_lang_code == WG_LANG_ZH ? zh : en; }
+
+/* The next character of UTF-8 text, moving s past it; 0 at the end. */
+static u32 utf8_next(const char **s) {
+  const u8 *p = (const u8 *)*s;
+  u32 c = p[0];
+  i32 n = c < 0x80 ? 0 : c < 0xE0 ? 1 : c < 0xF0 ? 2 : 3;
+  if (n) c &= 0x3F >> n;
+  for (i32 i = 1; i <= n; i++) {
+    if ((p[i] & 0xC0) != 0x80) { n = i - 1; break; }
+    c = c << 6 | (p[i] & 0x3F);
+  }
+  if (c) *s = (const char *)p + n + 1;
+  return c;
 }
 
 #endif

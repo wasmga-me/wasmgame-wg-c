@@ -168,21 +168,45 @@ static void disc(float cx, float cy, float r, u32 c, float alpha) { capsule(cx, 
 
 /* ---------- text (Inter, from sdf_font.h) ---------- */
 
-static i32 glyph(char ch) {
-  for (i32 i = 0; SDF_CHARS[i]; i++)
-    if (SDF_CHARS[i] == ch) return i;
-  return 0;
+/* Without a game's extra glyphs (tools/sdf-font.py --extra), only Inter's. */
+#ifndef SDF_EXTRA
+#define SDF_EXTRA_N 0
+static const unsigned int SDF_EXTRA_CHARS[1] = {0};
+static const struct sdf_glyph SDF_EXTRA_GLYPHS[1] = {{0, 0, 0, 0, 0, 0}};
+static const unsigned char SDF_EXTRA_DATA[1] = {0};
+#endif
+
+/* The glyph for character ch and its field; a space for ones the font lacks. */
+static const struct sdf_glyph *glyph(u32 ch, const unsigned char **data) {
+  *data = SDF_DATA;
+  if (ch < 128) {
+    for (i32 i = 0; SDF_CHARS[i]; i++)
+      if ((u32)SDF_CHARS[i] == ch) return &SDF_GLYPHS[i];
+    return &SDF_GLYPHS[0];
+  }
+  i32 lo = 0, hi = SDF_EXTRA_N - 1;
+  while (lo <= hi) {
+    i32 mid = (lo + hi) / 2;
+    if (SDF_EXTRA_CHARS[mid] == ch) {
+      *data = SDF_EXTRA_DATA;
+      return &SDF_EXTRA_GLYPHS[mid];
+    }
+    if (SDF_EXTRA_CHARS[mid] < ch) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return &SDF_GLYPHS[0];
 }
 
 static float text_width(const char *s, float size) {
   float k = size / SDF_EM, w = 0;
-  for (; *s; s++) w += SDF_GLYPHS[glyph(*s)].adv * k;
+  const unsigned char *d;
+  for (u32 ch; (ch = utf8_next(&s));) w += glyph(ch, &d)->adv * k;
   return w;
 }
 
-static void draw_glyph(i32 g, float gx, float gy, float k, u32 c, float alpha) {
-  const unsigned char *f = SDF_DATA + SDF_GLYPHS[g].off;
-  i32 w = SDF_GLYPHS[g].w, h = SDF_GLYPHS[g].h;
+static void draw_glyph(const struct sdf_glyph *g, const unsigned char *data, float gx, float gy, float k, u32 c, float alpha) {
+  const unsigned char *f = data + g->off;
+  i32 w = g->w, h = g->h;
   if (!w) return;
   i32 x0 = floori(gx), y0 = floori(gy), x1 = ceili(gx + w * k), y1 = ceili(gy + h * k);
   if (x0 < 0) x0 = 0;
@@ -222,10 +246,11 @@ static void draw_glyph(i32 g, float gx, float gy, float k, u32 c, float alpha) {
 /* draws s with its left edge at x and the middle of its digits at cy; size is the em in pixels */
 static float text_l(const char *s, float x, float cy, float size, u32 c, float alpha) {
   float k = size / SDF_EM, top = cy - DIGIT_MID * k;
-  for (; *s; s++) {
-    i32 g = glyph(*s);
-    draw_glyph(g, x + SDF_GLYPHS[g].left * k, top + SDF_GLYPHS[g].top * k, k, c, alpha);
-    x += SDF_GLYPHS[g].adv * k;
+  const unsigned char *d;
+  for (u32 ch; (ch = utf8_next(&s));) {
+    const struct sdf_glyph *g = glyph(ch, &d);
+    draw_glyph(g, d, x + g->left * k, top + g->top * k, k, c, alpha);
+    x += g->adv * k;
   }
   return x;
 }
