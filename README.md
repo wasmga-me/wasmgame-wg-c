@@ -21,6 +21,10 @@ clang --target=wasm32 -O2 -ffreestanding -fno-builtin -nostdlib \
 
 Add glyphs to `CHARS` in `tools/sdf-font.py`, then run `python3 tools/sdf-font.py [InterDisplay-ExtraBold.otf]` (needs Pillow and NumPy). It rewrites `sdf_font.h`; copy the new file into the Rust engine, [wasmgame-wg](https://github.com/wasmga-me/wasmgame-wg), too.
 
+## Languages
+
+The page passes its language to `wg_lang` before `wg_init`; games pick their text with `tr("Undo", "撤销", "元に戻す")`, one string per language in `WG_LANGS` order (wg.h), English for any left out. Text outside ASCII needs its glyphs: `python3 tools/sdf-font.py --extra game.glyphs.h game.c` writes every character the game's string literals use beyond `sdf_font.h` (accented Latin and Cyrillic from Inter, kana, Hangul and Han from Noto Sans), and the game includes that file after `sdf_font.h` (wgfb.h draws them). Run it again after changing the text.
+
 ## Games on it
 
 [wasmga-me/games](https://github.com/wasmga-me/games) pins a commit of this repo in `wg-c.rev`; its `build.sh` fetches it into `wg-c/` when it compiles. After pushing here, bump that file there.
