@@ -15,7 +15,8 @@
  *   wg_drawn()               1 if the last wg_frame changed the picture
  *   wg_pointer(x)            paddle games: pointer x, -1 when it leaves
  *   wg_lang(code)            the page's language before wg_init, as two
- *                            lowercase letters, code = 'z' | 'h' << 8; games
+ *                            lowercase letters, code = 'z' | 'h' << 8 ("zt"
+ *                            for Traditional Chinese); games
  *                            pick their text with tr() below; returns the
  *                            language the game uses
  * and may import:
@@ -205,13 +206,14 @@ static i32 wg_picks_ok(const i32 *opt, const i32 *choices, i32 n) {
 
 /* The page's language (wg_lang), and a game's text in it: tr("Undo", "撤销",
  * "元に戻す") gives the text in WG_LANGS order, the first (English) for any
- * language it leaves out or gives as 0. Text outside ASCII needs its glyphs:
+ * language it leaves out or gives as 0. Traditional Chinese (zt) comes last
+ * and falls back to the Simplified text before English. Text outside ASCII needs its glyphs:
  * tools/sdf-font.py --extra makes them from the game's string literals, for
  * wgfb.h. The language isn't part of the state, so a save plays on in
  * whatever language the page is in. */
 #define WG_LANG(a, b) ((i32)(a) | (i32)(b) << 8)
-#define WG_LANGS "en zh ja ko es pt fr de ru"
-enum { LANG_EN, LANG_ZH, LANG_JA, LANG_KO, LANG_ES, LANG_PT, LANG_FR, LANG_DE, LANG_RU };
+#define WG_LANGS "en zh ja ko es pt fr de ru zt"
+enum { LANG_EN, LANG_ZH, LANG_JA, LANG_KO, LANG_ES, LANG_PT, LANG_FR, LANG_DE, LANG_RU, LANG_ZT };
 /* the page's language, as an index into WG_LANGS (LANG_EN for one it lacks) */
 static i32 wg_lang_i;
 WG_EXPORT(wg_lang) i32 wg_lang(i32 code) {
@@ -222,7 +224,10 @@ WG_EXPORT(wg_lang) i32 wg_lang(i32 code) {
   }
   return WG_LANG(WG_LANGS[wg_lang_i * 3], WG_LANGS[wg_lang_i * 3 + 1]);
 }
-static const char *wg_tr(const char *const *t, i32 n) { return wg_lang_i < n && t[wg_lang_i] ? t[wg_lang_i] : t[0]; }
+static const char *wg_tr(const char *const *t, i32 n) {
+  if (wg_lang_i < n && t[wg_lang_i]) return t[wg_lang_i];
+  return wg_lang_i == LANG_ZT && n > LANG_ZH && t[LANG_ZH] ? t[LANG_ZH] : t[0];
+}
 #define tr(...) wg_tr((const char *const[]){__VA_ARGS__}, sizeof((const char *const[]){__VA_ARGS__}) / sizeof(const char *))
 
 /* The next character of UTF-8 text, moving s past it; 0 at the end. */
