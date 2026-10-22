@@ -22,6 +22,7 @@ static float minf(float a, float b) { return a < b ? a : b; }
 static float maxf(float a, float b) { return a > b ? a : b; }
 static float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 static float absf(float v) { return v < 0 ? -v : v; }
+static i32 clampi(i32 v, i32 lo, i32 hi) { return v < lo ? lo : v > hi ? hi : v; }
 static i32 floori(float v) { return (i32)__builtin_floorf(v); }
 static i32 ceili(float v) { return (i32)__builtin_ceilf(v); }
 static float sqrtf_(float v) { return __builtin_sqrtf(v); }
@@ -67,20 +68,46 @@ static u32 mixc(u32 c, u32 d, float a) {
   return out;
 }
 
-static void clear(u32 c) {
-  u32 *p = fb, *end = fb + FW * FH;
-  while (p < end) *p++ = c;
-}
-
-/* a crisp rectangle on whole pixels */
+/* a crisp rectangle on whole pixels: its first row filled, the rest copied from it */
 static void box(i32 x, i32 y, i32 w, i32 h, u32 c) {
   if (x < 0) { w += x; x = 0; }
   if (y < 0) { h += y; y = 0; }
   if (x + w > FW) w = FW - x;
   if (y + h > FH) h = FH - y;
-  for (i32 j = 0; j < h; j++) {
-    u32 *row = fb + (y + j) * FW + x;
-    for (i32 i = 0; i < w; i++) row[i] = c;
+  if (w <= 0 || h <= 0) return;
+  u32 *first = fb + y * FW + x;
+  for (i32 i = 0; i < w; i++) first[i] = c;
+  for (i32 j = 1; j < h; j++) memcpy(first + j * FW, first, (unsigned long)w * 4);
+}
+
+static void clear(u32 c) { box(0, 0, FW, FH, c); }
+
+/* pixels x0..x1 of one row of a rounded box centred at cx, the half-size
+ * of its straight part hw, corner radius r, and qy = |y - centre| less the
+ * straight part's half-height: coverage is worked out only near the edge,
+ * and the middle filled straight */
+static void rrect_row(u32 *row, i32 x0, i32 x1, float cx, float qy, float hw, float r, u32 c, float alpha) {
+  /* pixels a..b are fully covered: within e of the centre */
+  float ri = r - 0.5f;
+  i32 a = x1, b = x1;
+  if (qy <= ri) {
+    float e = hw + (qy <= 0 ? ri : sqrtf_(ri * ri - qy * qy));
+    a = clampi(ceili(cx - e - 0.5f), x0, x1);
+    b = clampi(floori(cx + e - 0.5f) + 1, a, x1);
+  }
+  u32 full = (u32)(alpha * 256);
+  if (full >= 256) for (i32 i = a; i < b; i++) row[i] = c;
+  else for (i32 i = a; i < b; i++) blend(row + i, c, full);
+  for (i32 i = x0; i < x1; i++) {
+    if (i == a) i = b; /* past the middle */
+    if (i >= x1) break;
+    float qx = absf(i + 0.5f - cx) - hw, d;
+    if (qx <= 0 && qy <= 0) d = maxf(qx, qy) - r;
+    else if (qx <= 0) d = qy - r;
+    else if (qy <= 0) d = qx - r;
+    else d = sqrtf_(qx * qx + qy * qy) - r;
+    float cov = clampf(0.5f - d, 0, 1);
+    if (cov > 0) blend(row + i, c, (u32)(cov * alpha * 256));
   }
 }
 
@@ -94,24 +121,18 @@ static void rrect(float x, float y, float w, float h, float r, u32 c, float alph
   if (y0 < 0) y0 = 0;
   if (x1 > FW) x1 = FW;
   if (y1 > FH) y1 = FH;
-  for (i32 j = y0; j < y1; j++) {
-    float qy = absf(j + 0.5f - cy) - hh;
-    u32 *row = fb + j * FW;
-    for (i32 i = x0; i < x1; i++) {
-      float qx = absf(i + 0.5f - cx) - hw, d;
-      if (qx <= 0 && qy <= 0) d = maxf(qx, qy) - r;
-      else if (qx <= 0) d = qy - r;
-      else if (qy <= 0) d = qx - r;
-      else d = sqrtf_(qx * qx + qy * qy) - r;
-      float cov = clampf(0.5f - d, 0, 1);
-      if (cov > 0) blend(row + i, c, (u32)(cov * alpha * 256));
-    }
-  }
+  if (x1 <= x0) return;
+  for (i32 j = y0; j < y1; j++) rrect_row(fb + j * FW, x0, x1, cx, absf(j + 0.5f - cy) - hh, hw, r, c, alpha);
 }
 
 /* a line from a to b with round ends, radius r; a disc when a == b */
 static void capsule(float ax, float ay, float bx, float by, float r, u32 c, float alpha) {
   if (r <= 0 || alpha <= 0) return;
+  /* along an axis it is a rounded box, quicker to fill */
+  if (ax == bx || ay == by) {
+    rrect(minf(ax, bx) - r, minf(ay, by) - r, absf(bx - ax) + 2 * r, absf(by - ay) + 2 * r, r, c, alpha);
+    return;
+  }
   i32 x0 = floori(minf(ax, bx) - r - 1), x1 = ceili(maxf(ax, bx) + r + 1);
   i32 y0 = floori(minf(ay, by) - r - 1), y1 = ceili(maxf(ay, by) + r + 1);
   if (x0 < 0) x0 = 0;
@@ -148,7 +169,10 @@ static void capsule_grad(float ax, float ay, float bx, float by, float ra, float
   if (x1 > FW) x1 = FW;
   if (y1 > FH) y1 = FH;
   float dx = bx - ax, dy = by - ay, ll = dx * dx + dy * dy, inv = ll > 0 ? 1 / ll : 0;
-  float out2 = (rm + 0.5f) * (rm + 0.5f);
+  /* squared distances outside which a pixel isn't touched, and inside which
+   * it is fully covered all along */
+  float out2 = (rm + 0.5f) * (rm + 0.5f), rn = minf(ra, rb), in2 = rn > 0.5f ? (rn - 0.5f) * (rn - 0.5f) : 0;
+  u32 full = (u32)(alpha * 256);
   for (i32 j = y0; j < y1; j++) {
     float py = j + 0.5f;
     u32 *row = fb + j * FW;
@@ -157,9 +181,10 @@ static void capsule_grad(float ax, float ay, float bx, float by, float ra, float
       float t = clampf(((px - ax) * dx + (py - ay) * dy) * inv, 0, 1);
       float qx = ax + t * dx - px, qy = ay + t * dy - py, d2 = qx * qx + qy * qy;
       if (d2 >= out2) continue;
+      if (d2 <= in2) { blend(row + i, ca == cb ? ca : mixc(cb, ca, t), full); continue; }
       float r = ra + (rb - ra) * t;
       float cov = clampf(r + 0.5f - sqrtf_(d2), 0, 1);
-      if (cov > 0) blend(row + i, mixc(cb, ca, t), (u32)(cov * alpha * 256));
+      if (cov > 0) blend(row + i, ca == cb ? ca : mixc(cb, ca, t), (u32)(cov * alpha * 256));
     }
   }
 }
@@ -214,28 +239,32 @@ static void draw_glyph(const struct sdf_glyph *g, const unsigned char *data, flo
   if (x1 > FW) x1 = FW;
   if (y1 > FH) y1 = FH;
   float inv = 1 / k, scale = SDF_SPREAD / 127.0f * k;
+  /* one row of the field at a time, blended between the two field rows
+   * around the pixels' centres, with an empty column each side: col[ix + 1]
+   * is field column ix */
+  float col[255 + 2]; /* fields are at most 255 wide (unsigned char) */
+  col[0] = col[w + 1] = 0;
+  u32 full = (u32)(alpha * 256);
   for (i32 j = y0; j < y1; j++) {
     float fy = (j + 0.5f - gy) * inv - 0.5f;
     i32 iy = floori(fy);
     float ty = fy - iy;
     if (iy < -1 || iy >= h) continue;
+    const unsigned char *r0 = iy >= 0 ? f + iy * w : 0, *r1 = iy + 1 < h ? f + (iy + 1) * w : 0;
+    for (i32 x = 0; x < w; x++) {
+      float a = r0 ? r0[x] : 0, b = r1 ? r1[x] : 0;
+      col[x + 1] = a + (b - a) * ty;
+    }
+    u32 *row = fb + j * FW;
     for (i32 i = x0; i < x1; i++) {
-      float fx = (i + 0.5f - gx) * inv - 0.5f;
+      float fx = (i + 0.5f - gx) * inv + 0.5f;
+      if (fx < 0) continue;
       i32 ix = floori(fx);
-      float tx = fx - ix;
-      if (ix < -1 || ix >= w) continue;
-      float s00 = 0, s10 = 0, s01 = 0, s11 = 0;
-      if (iy >= 0) {
-        if (ix >= 0) s00 = f[iy * w + ix];
-        if (ix + 1 < w) s10 = f[iy * w + ix + 1];
-      }
-      if (iy + 1 < h) {
-        if (ix >= 0) s01 = f[(iy + 1) * w + ix];
-        if (ix + 1 < w) s11 = f[(iy + 1) * w + ix + 1];
-      }
-      float v = (s00 * (1 - tx) + s10 * tx) * (1 - ty) + (s01 * (1 - tx) + s11 * tx) * ty;
-      float cov = clampf((v - 128) * scale + 0.5f, 0, 1);
-      if (cov > 0) blend(fb + j * FW + i, c, (u32)(cov * alpha * 256));
+      if (ix > w) continue;
+      float tx = fx - ix, v = col[ix] + (col[ix + 1] - col[ix]) * tx;
+      float cov = (v - 128) * scale + 0.5f;
+      if (cov >= 1) blend(row + i, c, full);
+      else if (cov > 0) blend(row + i, c, (u32)(cov * alpha * 256));
     }
   }
 }

@@ -12,7 +12,7 @@ The C engine of the wasmga.me native games: freestanding headers (no libc, no JS
 ## Build a game
 
 ```sh
-clang --target=wasm32 -O2 -ffreestanding -fno-builtin -nostdlib \
+clang --target=wasm32 -O2 -mbulk-memory -ffreestanding -fno-builtin -nostdlib \
   -Wl,--no-entry -Wl,--strip-debug -I path/to/wasmgame-wg-c \
   -o game.wasm game.c
 ```

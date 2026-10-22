@@ -71,15 +71,25 @@ typedef int i32;
 #define WG_EV_LEVEL 16
 #define WG_EV_WIN 32 /* a win tune */
 
+/* With bulk memory (-mbulk-memory) these are single memory.fill and
+ * memory.copy instructions, many times faster than a loop for a screen. */
 void *memset(void *d, int c, unsigned long n) {
+#ifdef __wasm_bulk_memory__
+  __builtin_memset(d, c, n);
+#else
   u8 *p = (u8 *)d;
   while (n--) *p++ = (u8)c;
+#endif
   return d;
 }
 void *memcpy(void *d, const void *s, unsigned long n) {
+#ifdef __wasm_bulk_memory__
+  __builtin_memcpy(d, s, n);
+#else
   u8 *p = (u8 *)d;
   const u8 *q = (const u8 *)s;
   while (n--) *p++ = *q++;
+#endif
   return d;
 }
 

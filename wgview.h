@@ -60,19 +60,8 @@ static void v_box_grad(float x, float y, float w, float h, float r, u32 top, u32
   if (y0 < 0) y0 = 0;
   if (x1 > FW) x1 = FW;
   if (y1 > FH) y1 = FH;
-  for (i32 j = y0; j < y1; j++) {
-    float qy = absf(j + 0.5f - cy) - hh;
-    u32 c = mixc(bottom, top, (j + 0.5f - y) / h), *row = fb + j * FW;
-    for (i32 i = x0; i < x1; i++) {
-      float qx = absf(i + 0.5f - cx) - hw, d;
-      if (qx <= 0 && qy <= 0) d = maxf(qx, qy) - r;
-      else if (qx <= 0) d = qy - r;
-      else if (qy <= 0) d = qx - r;
-      else d = sqrtf_(qx * qx + qy * qy) - r;
-      float cov = clampf(0.5f - d, 0, 1);
-      if (cov > 0) blend(row + i, c, (u32)(cov * a * 256));
-    }
-  }
+  for (i32 j = y0; j < y1; j++)
+    rrect_row(fb + j * FW, x0, x1, cx, absf(j + 0.5f - cy) - hh, hw, r, mixc(bottom, top, (j + 0.5f - y) / h), a);
 }
 
 /* a soft shadow: a rounded box blurred over `soft` plan units; a hollow
@@ -288,8 +277,7 @@ static void view_background(u32 key, void (*draw)(void)) {
     fb = keep;
     bg_key = key;
   }
-  u32 *d = fb, *s = fb_layer(1), *end = fb + FW * FH;
-  while (d < end) *d++ = *s++;
+  memcpy(fb, fb_layer(1), (unsigned long)FW * FH * 4);
 }
 
 /* ---------- sprites ----------
@@ -327,14 +315,12 @@ static i32 sprite_make(Sprite *s, u32 key, float x, float y, float w, float h, v
 /* copies the sprite with its top left at plan x, y, to the nearest pixel */
 static void sprite_put(const Sprite *s, float x, float y) {
   i32 dx = floori(VX + x * VK + 0.5f), dy = floori(VY + y * VK + 0.5f);
+  /* the sprite's columns i0..i1 fall on the screen */
+  i32 i0 = dx < 0 ? -dx : 0, i1 = s->w < FW - dx ? s->w : FW - dx;
+  if (i1 <= i0) return;
   for (i32 j = 0; j < s->h; j++) {
     i32 yy = dy + j;
-    if (yy < 0 || yy >= FH) continue;
-    u32 *d = fb + yy * FW, *src = s->px + j * s->w;
-    for (i32 i = 0; i < s->w; i++) {
-      i32 xx = dx + i;
-      if (xx >= 0 && xx < FW) d[xx] = src[i];
-    }
+    if (yy >= 0 && yy < FH) memcpy(fb + yy * FW + dx + i0, s->px + j * s->w + i0, (unsigned long)(i1 - i0) * 4);
   }
 }
 
