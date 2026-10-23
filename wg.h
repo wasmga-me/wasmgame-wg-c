@@ -43,6 +43,30 @@
  * state, so a save brings its own setup and scoreboard back. Keeping them as
  * an `i32 opt[N]` there, with a `choices[N]` table of how many each has, lets
  * wg_pick and wg_picks_ok below do the checks.
+ *
+ * Board games (a grid of squares, played a move at a time) can export an
+ * accessible board: the page lays a grid of focusable squares over the one
+ * drawn, so screen readers, keyboards and switches play the same game a
+ * click does (src/scripts/engines/board.ts). The words are the game's, from
+ * tr(), so they come in the page's language.
+ *   wg_a11y_grid()           cols << 16 | rows; 0 when no board is showing
+ *   wg_a11y_cursor()         the game's cursor, y << 16 | x
+ *   wg_a11y_focus(x, y)      the page's focus moved there: the cursor follows
+ *   wg_a11y_rect(k)          where the board is drawn, in framebuffer pixels:
+ *                            k 0 left, 1 top, 2 a square's size x 100
+ *   wg_a11y_rev()            changes whenever any square's text does (the
+ *                            page reads them only then)
+ *   wg_a11y_buf()            where wg_a11y_text writes
+ *   wg_a11y_text(kind, x, y) UTF-8 into wg_a11y_buf(), returns its length:
+ *                            WG_A11Y_CELL square x, y ("3 mines nearby");
+ *                            WG_A11Y_STATUS the run so far (mines left,
+ *                            time); WG_A11Y_SAID what the last wg_a11y_act
+ *                            did, then forgotten; WG_A11Y_KEYS the keys, as
+ *                            the page reads them out (arrows move, Space
+ *                            the main move, X the second, I the status)
+ *   wg_a11y_act(x, y, a)     a 0 the main move on square x, y (what Space or
+ *                            a click does), 1 the second (flag, note); its
+ *                            events come with the next wg_frame
  */
 #ifndef WG_H
 #define WG_H
@@ -62,6 +86,12 @@ typedef int i32;
 #define B_A 16
 #define B_B 32
 #define B_START 64
+
+/* wg_a11y_text kinds */
+#define WG_A11Y_CELL 0
+#define WG_A11Y_STATUS 1
+#define WG_A11Y_SAID 2
+#define WG_A11Y_KEYS 3
 
 /* events returned from wg_frame, the player turns them into sound and UI */
 #define WG_EV_BLIP 1
