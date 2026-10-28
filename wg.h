@@ -54,6 +54,12 @@
  *   wg_a11y_focus(x, y)      the page's focus moved there: the cursor follows
  *   wg_a11y_rect(k)          where the board is drawn, in framebuffer pixels:
  *                            k 0 left, 1 top, 2 a square's size x 100
+ *   wg_a11y_box(x, y, k)     optional, for a board that isn't a grid of
+ *                            squares (tubes in a rack, hexes, screws):
+ *                            square x, y's own box in framebuffer pixels,
+ *                            k 0 left, 1 top, 2 width, 3 height; -1 on a
+ *                            grid. The page lays each square there and
+ *                            leaves its name (A1) to the game's words
  *   wg_a11y_rev()            changes whenever any square's text does (the
  *                            page reads them only then)
  *   wg_a11y_buf()            where wg_a11y_text writes
