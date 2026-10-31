@@ -60,14 +60,21 @@
  *                            k 0 left, 1 top, 2 width, 3 height; -1 on a
  *                            grid. The page lays each square there and
  *                            leaves its name (A1) to the game's words
- *   wg_a11y_rev()            changes whenever any square's text does (the
- *                            page reads them only then)
+ *   wg_a11y_arrows()         optional, 1 when the arrows are the game's own
+ *                            moves (2048 slides the tiles): they reach
+ *                            wg_frame as the pad, and Shift with an arrow
+ *                            moves between squares
+ *   wg_a11y_rev()            changes whenever any square's text, the
+ *                            status or the keys do (the page reads them
+ *                            only then)
  *   wg_a11y_buf()            where wg_a11y_text writes
  *   wg_a11y_text(kind, x, y) UTF-8 into wg_a11y_buf(), returns its length:
  *                            WG_A11Y_CELL square x, y ("3 mines nearby");
  *                            WG_A11Y_STATUS the run so far (mines left,
- *                            time); WG_A11Y_SAID what the last wg_a11y_act
- *                            did, then forgotten; WG_A11Y_KEYS the keys, as
+ *                            time); WG_A11Y_SAID what the last move did
+ *                            (wg_a11y_act, or keys the game took in
+ *                            wg_frame), then forgotten; the page reads it
+ *                            after each frame; WG_A11Y_KEYS the keys, as
  *                            the page reads them out (arrows move, Space
  *                            the main move, X the second, I the status)
  *   wg_a11y_act(x, y, a)     a 0 the main move on square x, y (what Space or
