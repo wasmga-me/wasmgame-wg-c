@@ -239,6 +239,33 @@ static char *itoa10(int n, char *buf) {
   return buf;
 }
 
+/* text for the accessible board's words: s into p, returning the end */
+static char *put(char *p, const char *s) {
+  while (*s) *p++ = *s++;
+  *p = 0;
+  return p;
+}
+
+/* s with each # replaced by n, into p; returns the end */
+static char *put_n(char *p, const char *s, int n) {
+  char num[12];
+  for (; *s; s++) {
+    if (*s != '#') { *p++ = *s; continue; }
+    p = put(p, itoa10(n, num));
+  }
+  *p = 0;
+  return p;
+}
+
+/* FNV-1a over n bytes, going on from h (0 to start) */
+static u32 hash_bytes(u32 h, const void *p, u32 n) {
+  const u8 *b = (const u8 *)p;
+  if (!h) h = 2166136261u;
+  while (n--) { h ^= *b++; h *= 16777619u; }
+  return h;
+}
+static u32 hash_int(u32 h, i32 v) { return hash_bytes(h, &v, sizeof v); }
+
 static u32 xorshift(u32 *s) {
   u32 x = *s ? *s : 0x9E3779B9u;
   x ^= x << 13; x ^= x >> 17; x ^= x << 5;

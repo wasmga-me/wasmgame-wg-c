@@ -255,14 +255,6 @@ static u32 key_repeat(u32 held, u32 pressed, i32 dt, i32 *timer) {
   return 0;
 }
 
-static u32 hash_bytes(u32 h, const void *p, u32 n) {
-  const u8 *b = (const u8 *)p;
-  if (!h) h = 2166136261u;
-  while (n--) { h ^= *b++; h *= 16777619u; }
-  return h;
-}
-static u32 hash_int(u32 h, i32 v) { return hash_bytes(h, &v, sizeof v); }
-
 /* ---------- a still background ----------
  * What doesn't change from frame to frame (a board, a table) is drawn once
  * into layer 1 (define WGFB_LAYERS 2) and copied under each frame. */
