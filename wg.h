@@ -62,8 +62,10 @@
  *                            leaves its name (A1) to the game's words
  *   wg_a11y_arrows()         optional, 1 when the arrows are the game's own
  *                            moves (2048 slides the tiles): they reach
- *                            wg_frame as the pad, and Shift with an arrow
- *                            moves between squares
+ *                            wg_frame as the pad, Shift with an arrow
+ *                            moves between squares, and the page adds
+ *                            slide buttons for touch screen readers
+ *                            (wg_a11y_act a 2 to 5, WG_A11Y_WAY)
  *   wg_a11y_rev()            changes whenever any square's text, the
  *                            status or the keys do (the page reads them
  *                            only then)
@@ -78,8 +80,10 @@
  *                            the page reads them out (arrows move, Space
  *                            the main move, X the second, I the status)
  *   wg_a11y_act(x, y, a)     a 0 the main move on square x, y (what Space or
- *                            a click does), 1 the second (flag, note); its
- *                            events come with the next wg_frame
+ *                            a click does), 1 the second (flag, note); with
+ *                            wg_a11y_arrows, 2 to 5 the pad's up, right,
+ *                            down, left; its events come with the next
+ *                            wg_frame
  */
 #ifndef WG_H
 #define WG_H
@@ -105,6 +109,7 @@ typedef int i32;
 #define WG_A11Y_STATUS 1
 #define WG_A11Y_SAID 2
 #define WG_A11Y_KEYS 3
+#define WG_A11Y_WAY 4 /* x 0 to 3: the slide button up, right, down, left */
 
 /* events returned from wg_frame, the player turns them into sound and UI */
 #define WG_EV_BLIP 1
