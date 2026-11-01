@@ -60,19 +60,30 @@
  *                            k 0 left, 1 top, 2 width, 3 height; -1 on a
  *                            grid. The page lays each square there and
  *                            leaves its name (A1) to the game's words
- *   wg_a11y_rev()            changes whenever any square's text does (the
- *                            page reads them only then)
+ *   wg_a11y_arrows()         optional, 1 when the arrows are the game's own
+ *                            moves (2048 slides the tiles): they reach
+ *                            wg_frame as the pad, Shift with an arrow
+ *                            moves between squares, and the page adds
+ *                            slide buttons for touch screen readers
+ *                            (wg_a11y_act a 2 to 5, WG_A11Y_WAY)
+ *   wg_a11y_rev()            changes whenever any square's text, the
+ *                            status or the keys do (the page reads them
+ *                            only then)
  *   wg_a11y_buf()            where wg_a11y_text writes
  *   wg_a11y_text(kind, x, y) UTF-8 into wg_a11y_buf(), returns its length:
  *                            WG_A11Y_CELL square x, y ("3 mines nearby");
  *                            WG_A11Y_STATUS the run so far (mines left,
- *                            time); WG_A11Y_SAID what the last wg_a11y_act
- *                            did, then forgotten; WG_A11Y_KEYS the keys, as
+ *                            time); WG_A11Y_SAID what the last move did
+ *                            (wg_a11y_act, or keys the game took in
+ *                            wg_frame), then forgotten; the page reads it
+ *                            after each frame; WG_A11Y_KEYS the keys, as
  *                            the page reads them out (arrows move, Space
  *                            the main move, X the second, I the status)
  *   wg_a11y_act(x, y, a)     a 0 the main move on square x, y (what Space or
- *                            a click does), 1 the second (flag, note); its
- *                            events come with the next wg_frame
+ *                            a click does), 1 the second (flag, note); with
+ *                            wg_a11y_arrows, 2 to 5 the pad's up, right,
+ *                            down, left; its events come with the next
+ *                            wg_frame
  */
 #ifndef WG_H
 #define WG_H
@@ -98,6 +109,7 @@ typedef int i32;
 #define WG_A11Y_STATUS 1
 #define WG_A11Y_SAID 2
 #define WG_A11Y_KEYS 3
+#define WG_A11Y_WAY 4 /* x 0 to 3: the slide button up, right, down, left */
 
 /* events returned from wg_frame, the player turns them into sound and UI */
 #define WG_EV_BLIP 1
@@ -231,6 +243,33 @@ static char *itoa10(int n, char *buf) {
   buf[j] = 0;
   return buf;
 }
+
+/* text for the accessible board's words: s into p, returning the end */
+static char *put(char *p, const char *s) {
+  while (*s) *p++ = *s++;
+  *p = 0;
+  return p;
+}
+
+/* s with each # replaced by n, into p; returns the end */
+static char *put_n(char *p, const char *s, int n) {
+  char num[12];
+  for (; *s; s++) {
+    if (*s != '#') { *p++ = *s; continue; }
+    p = put(p, itoa10(n, num));
+  }
+  *p = 0;
+  return p;
+}
+
+/* FNV-1a over n bytes, going on from h (0 to start) */
+static u32 hash_bytes(u32 h, const void *p, u32 n) {
+  const u8 *b = (const u8 *)p;
+  if (!h) h = 2166136261u;
+  while (n--) { h ^= *b++; h *= 16777619u; }
+  return h;
+}
+static u32 hash_int(u32 h, i32 v) { return hash_bytes(h, &v, sizeof v); }
 
 static u32 xorshift(u32 *s) {
   u32 x = *s ? *s : 0x9E3779B9u;
